@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nirali Hospital QR Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f5f8;
+      text-align: center;
+      padding: 15px;
+    }
+
+    .box {
+      background: white;
+      max-width: 450px;
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 14px;
+    }
+
+    h2 { color: #087c59; }
+
+    #reader {
+      width: 100%;
+      margin: 15px auto;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #087c59;
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    #message {
+      overflow-wrap: anywhere;
+      color: #b00020;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="box">
+
+  <h2>Nirali Hospital</h2>
+  <h3>Tea & Coffee QR Scanner</h3>
+
+  <div id="reader"></div>
+
+  <button id="startBtn" onclick="startScanner()">
+    Start Camera
+  </button>
+
+  <p id="message">Click Start Camera to scan QR Code.</p>
+
+</div>
+
+<script>
+
+let scanner = null;
+let scanning = false;
+let scanCompleted = false;
+
+async function startScanner() {
+
+  if (scanning) return;
+
+  try {
+
+    document.getElementById('message').innerText =
+      'Starting camera...';
+
+    scanner = new Html5Qrcode("reader");
+
+    const cameras = await Html5Qrcode.getCameras();
+
+    if (!cameras || cameras.length === 0) {
+      throw new Error('No camera found.');
+    }
+
+    let camera = cameras.find(c =>
+      /back|rear|environment/i.test(c.label)
+    );
+
+    if (!camera) {
+      camera = cameras[cameras.length - 1];
+    }
+
+    await scanner.start(
+      camera.id,
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
+      },
+
+      async function(decodedText) {
+
+        if (scanCompleted) return;
+
+        scanCompleted = true;
+
+        document.getElementById('message').innerText =
+          'QR detected. Sending to Canteen System...';
+
+        await scanner.stop();
+        scanning = false;
+
+        if (window.opener && !window.opener.closed) {
+
+          window.opener.postMessage({
+            type: 'NIRALI_QR_SCANNED',
+            token: decodedText
+          }, '*');
+
+          document.getElementById('message').innerText =
+            'QR sent successfully. You can close this page.';
+
+          setTimeout(() => window.close(), 1200);
+
+        } else {
+
+          document.getElementById('message').innerText =
+            'Canteen System window not found. Please reopen Scanner from Canteen System.';
+
+        }
+
+      },
+
+      function(error) {
+        // Ignore normal QR scanning errors.
+      }
+    );
+
+    scanning = true;
+
+    document.getElementById('startBtn').disabled = true;
+
+    document.getElementById('message').innerText =
+      'Camera active. Scan the Employee QR Code.';
+
+  }
+
+  catch(error) {
+
+    scanning = false;
+
+    document.getElementById('message').innerText =
+      'Camera Error: ' + (error.message || error);
+
+  }
+
+}
+
+</script>
+
+</body>
+</html>
