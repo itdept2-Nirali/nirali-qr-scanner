@@ -1,0 +1,20 @@
+
+{
+  "name": "Nirali Hospital Tea & Coffee",
+  "short_name": "Nirali Canteen",
+  "description": "Nirali Hospital Employee Tea and Coffee Ordering System",
+  "start_url": "https://script.google.com/macros/s/AKfycbyokt9-DhjfP6pMgSKZt6muRH_uTZfVyFmaS4SjmxEe_Ygp0piqkWAbLi7atYnRduQzQ/exec",
+  "scope": "/nirali-qr-scanner/",
+  "display": "standalone",
+  "background_color": "#18372f",
+  "theme_color": "#18372f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://itdept2-nirali.github.io/nirali-qr-scanner/Nirali%20Hospital%20Logo.png.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
