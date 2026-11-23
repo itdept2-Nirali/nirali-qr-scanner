@@ -7,38 +7,26 @@
   <meta name="theme-color" content="#18372f">
   <link rel="manifest" href="./manifest.json">
   <title>Nirali Hospital Tea & Coffee</title>
-
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-    }
-
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: 0;
-    }
-  </style>
 </head>
 <body>
-
-  <iframe
-    https://script.google.com/macros/s/AKfycbyokt9-DhjfP6pMgSKZt6muRH_uTZfVyFmaS4SjmxEe_Ygp0piqkWAbLi7atYnRduQzQ/exec
-    allow="camera; fullscreen">
-  </iframe>
+  <p style="text-align:center;font-family:Arial;padding:30px;">
+    Opening Nirali Hospital App...
+  </p>
 
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('./service-worker.js');
-      });
+    const APP_URL = "https://script.google.com/macros/s/AKfycbyokt9-DhjfP6pMgSKZt6muRH_uTZfVyFmaS4SjmxEe_Ygp0piqkWAbLi7atYnRduQzQ/exec";
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./service-worker.js")
+        .catch(function(error) {
+          console.log(error);
+        })
+        .finally(function() {
+          window.location.replace(APP_URL);
+        });
+    } else {
+      window.location.replace(APP_URL);
     }
   </script>
-
 </body>
 </html>
- 
