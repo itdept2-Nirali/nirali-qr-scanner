@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nirali Hospital - QR Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      text-align: center;
+    }
+    .container {
+      max-width: 480px;
+      margin: 20px auto;
+      padding: 22px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 3px 15px #0002;
+    }
+    h2 { color: #123b63; }
+    #reader {
+      width: 100%;
+      margin: 18px auto;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      margin: 8px 0;
+      border: 0;
+      border-radius: 8px;
+      background: #075da8;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .5; }
+    #stopBtn { background: #555; }
+    #status {
+      margin-top: 15px;
+      padding: 12px;
+      background: #eef4fa;
+      border-radius: 8px;
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Nirali Hospital</h2>
+    <h3>Tea & Coffee QR Scanner</h3>
+
+    <p>Scan employee QR code using Live Camera</p>
+
+    <div id="reader"></div>
+
+    <button id="startBtn" onclick="startScanner()">
+      Start Live Camera Scan
+    </button>
+
+    <button id="stopBtn" onclick="stopScanner()" disabled>
+      Stop Camera
+    </button>
+
+    <div id="status">Camera is not started.</div>
+  </div>
+
+<script>
+  const CANTEEN_URL =
+    "https://script.google.com/macros/s/AKfycbyyC7mKXHHvc6s_dcUyomzPDjTU_HBV3vYlfNRS_7PwrOv9m0bsAgllzc4bPnS9NnuPFg/exec?page=canteen";
+
+  let scanner = null;
+  let scanning = false;
+  let processing = false;
+
+  function showStatus(message) {
+    document.getElementById("status").textContent = message;
+  }
+
+  async function startScanner() {
+    if (scanning) return;
+
+    if (!window.Html5Qrcode) {
+      showStatus("QR scanner library could not load. Check internet connection.");
+      return;
+    }
+
+    try {
+      scanner = new Html5Qrcode("reader");
+
+      showStatus("Starting camera... Please allow camera access.");
+
+      await scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: function(width, height) {
+            const size = Math.min(width, height) * 0.75;
+            return { width: size, height: size };
+          }
+        },
+        onScanSuccess,
+        function() {}
+      );
+
+      scanning = true;
+      document.getElementById("startBtn").disabled = true;
+      document.getElementById("stopBtn").disabled = false;
+      showStatus("Camera is ON. Scan employee QR code.");
+
+    } catch (error) {
+      showStatus("Camera Error: " + (error.message || error));
+      scanner = null;
+    }
+  }
+
+  async function onScanSuccess(decodedText) {
+    if (processing) return;
+    processing = true;
+
+    showStatus("QR scanned. Opening canteen verification...");
+
+    try {
+      if (scanner && scanning) {
+        await scanner.stop();
+        scanning = false;
+      }
+    } catch (e) {}
+
+    const scannedToken = String(decodedText || "").trim();
+
+    if (!scannedToken) {
+      processing = false;
+      showStatus("Invalid QR code. Please scan again.");
+      return;
+    }
+
+    const destination =
+      CANTEEN_URL + "&token=" + encodeURIComponent(scannedToken);
+
+    window.location.replace(destination);
+  }
+
+  async function stopScanner() {
+    if (!scanner || !scanning) return;
+
+    try {
+      await scanner.stop();
+      scanning = false;
+      scanner.clear();
+
+      document.getElementById("startBtn").disabled = false;
+      document.getElementById("stopBtn").disabled = true;
+
+      showStatus("Camera stopped.");
+    } catch (error) {
+      showStatus("Unable to stop camera: " + error);
+    }
+  }
+</script>
+</body>
+</html>
