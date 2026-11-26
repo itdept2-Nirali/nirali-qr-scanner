@@ -10,6 +10,7 @@
 
   <style>
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       padding: 20px;
@@ -17,6 +18,7 @@
       background: #f1f5f9;
       text-align: center;
     }
+
     .container {
       max-width: 480px;
       margin: 20px auto;
@@ -25,11 +27,14 @@
       border-radius: 14px;
       box-shadow: 0 3px 15px #0002;
     }
+
     h2 { color: #123b63; }
+
     #reader {
       width: 100%;
       margin: 18px auto;
     }
+
     button {
       width: 100%;
       padding: 14px;
@@ -42,8 +47,11 @@
       font-weight: bold;
       cursor: pointer;
     }
+
     button:disabled { opacity: .5; }
+
     #stopBtn { background: #555; }
+
     #status {
       margin-top: 15px;
       padding: 12px;
@@ -55,123 +63,209 @@
 </head>
 
 <body>
+
   <div class="container">
+
     <h2>Nirali Hospital</h2>
     <h3>Tea & Coffee QR Scanner</h3>
 
-    <p>Scan employee QR code using Live Camera</p>
+    <p>Camera will start automatically.</p>
 
     <div id="reader"></div>
 
-    <button id="startBtn" onclick="startScanner()">
-      Start Live Camera Scan
+    <button id="startBtn" onclick="startScanner()" disabled>
+      Starting Camera...
     </button>
 
     <button id="stopBtn" onclick="stopScanner()" disabled>
       Stop Camera
     </button>
 
-    <div id="status">Camera is not started.</div>
+    <div id="status">
+      Opening Camera...
+    </div>
+
   </div>
 
 <script>
+
 const CANTEEN_URL =
   "https://script.google.com/macros/s/AKfycbzHYe9mIZ_QPGgIyNX-g59S64az2V1VdnU6NP8wOMKtBf8m9ihqlJqsQdX0ADjbVcEcWQ/exec?page=canteen";
 
-  let scanner = null;
-  let scanning = false;
-  let processing = false;
+let scanner = null;
+let scanning = false;
+let processing = false;
+let starting = false;
 
-  function showStatus(message) {
-    document.getElementById("status").textContent = message;
+
+// STATUS MESSAGE
+function showStatus(message) {
+  document.getElementById("status").textContent = message;
+}
+
+
+// AUTO START CAMERA
+window.addEventListener("load", function() {
+
+  showStatus("Starting camera automatically...");
+
+  setTimeout(function() {
+    startScanner();
+  }, 500);
+
+});
+
+
+// START CAMERA
+async function startScanner() {
+
+  if (scanning || starting) return;
+
+  if (!window.Html5Qrcode) {
+    showStatus("QR scanner library could not load. Check internet.");
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("startBtn").textContent = "Retry Camera";
+    return;
   }
 
-  async function startScanner() {
-    if (scanning) return;
+  starting = true;
 
-    if (!window.Html5Qrcode) {
-      showStatus("QR scanner library could not load. Check internet connection.");
-      return;
-    }
+  document.getElementById("startBtn").disabled = true;
 
-    try {
-      scanner = new Html5Qrcode("reader");
+  showStatus("Requesting camera permission...");
 
-      showStatus("Starting camera... Please allow camera access.");
+  try {
 
-      await scanner.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: function(width, height) {
-            const size = Math.min(width, height) * 0.75;
-            return { width: size, height: size };
-          }
-        },
-        onScanSuccess,
-        function() {}
-      );
+    scanner = new Html5Qrcode("reader");
 
-      scanning = true;
-      document.getElementById("startBtn").disabled = true;
-      document.getElementById("stopBtn").disabled = false;
-      showStatus("Camera is ON. Scan employee QR code.");
+    await scanner.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
 
-    } catch (error) {
-      showStatus("Camera Error: " + (error.message || error));
-      scanner = null;
-    }
-  }
+        qrbox: function(width, height) {
+          const size = Math.min(width, height) * 0.75;
 
-  async function onScanSuccess(decodedText) {
-    if (processing) return;
-    processing = true;
+          return {
+            width: size,
+            height: size
+          };
+        }
+      },
+      onScanSuccess,
+      function() {}
+    );
 
-    showStatus("QR scanned. Opening canteen verification...");
+    scanning = true;
+    starting = false;
 
-    try {
-      if (scanner && scanning) {
-        await scanner.stop();
-        scanning = false;
-      }
-    } catch (e) {}
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("startBtn").textContent = "Camera Started";
 
-    const scannedToken = String(decodedText || "").trim();
+    document.getElementById("stopBtn").disabled = false;
 
-    if (!scannedToken) {
-      processing = false;
-      showStatus("Invalid QR code. Please scan again.");
-      return;
-    }
+    showStatus("Camera is ON. Scan employee QR code.");
 
-const params = new URLSearchParams(window.location.search);
-const handoff = params.get("handoff") || "";
+  } catch (error) {
 
-const destination =
-  CANTEEN_URL +
-  "&token=" + encodeURIComponent(scannedToken) +
-  "&handoff=" + encodeURIComponent(handoff);
+    starting = false;
+    scanner = null;
 
-window.location.replace(destination);
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("startBtn").textContent = "Retry Camera";
+
+    showStatus(
+      "Camera Error: " +
+      (error.message || error) +
+      ". Please allow camera permission."
+    );
 
   }
 
-  async function stopScanner() {
-    if (!scanner || !scanning) return;
+}
 
-    try {
+
+// QR SCAN SUCCESS
+async function onScanSuccess(decodedText) {
+
+  if (processing) return;
+
+  processing = true;
+
+  showStatus("QR scanned. Opening canteen verification...");
+
+  try {
+
+    if (scanner && scanning) {
       await scanner.stop();
       scanning = false;
-      scanner.clear();
-
-      document.getElementById("startBtn").disabled = false;
-      document.getElementById("stopBtn").disabled = true;
-
-      showStatus("Camera stopped.");
-    } catch (error) {
-      showStatus("Unable to stop camera: " + error);
     }
+
+  } catch (e) {}
+
+  const scannedToken = String(decodedText || "").trim();
+
+  if (!scannedToken) {
+
+    processing = false;
+
+    showStatus("Invalid QR code. Please scan again.");
+
+    return;
   }
+
+  const params = new URLSearchParams(window.location.search);
+
+  const handoff = params.get("handoff") || "";
+
+  if (!handoff) {
+
+    processing = false;
+
+    showStatus("Staff session missing. Please login again.");
+
+    return;
+  }
+
+  const destination =
+    CANTEEN_URL +
+    "&token=" + encodeURIComponent(scannedToken) +
+    "&handoff=" + encodeURIComponent(handoff);
+
+  window.location.replace(destination);
+
+}
+
+
+// STOP CAMERA
+async function stopScanner() {
+
+  if (!scanner || !scanning) return;
+
+  try {
+
+    await scanner.stop();
+
+    scanning = false;
+
+    scanner.clear();
+
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("startBtn").textContent = "Start Camera";
+
+    document.getElementById("stopBtn").disabled = true;
+
+    showStatus("Camera stopped.");
+
+  } catch (error) {
+
+    showStatus("Unable to stop camera: " + error);
+
+  }
+
+}
+
 </script>
+
 </body>
 </html>
