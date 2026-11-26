@@ -109,7 +109,9 @@ window.addEventListener("load", function() {
 
   showStatus("Starting camera automatically...");
 
-  startScanner();
+  setTimeout(function() {
+    startScanner();
+  }, 1500);
 
 });
 
