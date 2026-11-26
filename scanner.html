@@ -144,10 +144,16 @@ const CANTEEN_URL =
       return;
     }
 
-    const destination =
-      CANTEEN_URL + "&token=" + encodeURIComponent(scannedToken);
+const params = new URLSearchParams(window.location.search);
+const handoff = params.get("handoff") || "";
 
-    window.location.replace(destination);
+const destination =
+  CANTEEN_URL +
+  "&token=" + encodeURIComponent(scannedToken) +
+  "&handoff=" + encodeURIComponent(handoff);
+
+window.location.replace(destination);
+
   }
 
   async function stopScanner() {
