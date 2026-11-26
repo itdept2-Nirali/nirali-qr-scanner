@@ -116,6 +116,7 @@ window.addEventListener("load", function() {
 });
 
 
+
  // START CAMERA
 async function startScanner() {
 
@@ -129,39 +130,62 @@ async function startScanner() {
   }
 
   starting = true;
-
   document.getElementById("startBtn").disabled = true;
-
   showStatus("Requesting camera permission...");
 
   try {
 
     scanner = new Html5Qrcode("reader");
 
-    await scanner.start(
-      { facingMode: "environment" },
-      {
-        fps: 10,
+    try {
 
-        qrbox: function(width, height) {
-          const size = Math.min(width, height) * 0.75;
+      await scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: function(width, height) {
+            const size = Math.min(width, height) * 0.75;
+            return { width: size, height: size };
+          }
+        },
+        onScanSuccess,
+        function() {}
+      );
 
-          return {
-            width: size,
-            height: size
-          };
-        }
-      },
-      onScanSuccess,
-      function() {}
-    );
+    } catch (firstError) {
+
+      if (scanner) {
+        try { await scanner.clear(); } catch(e) {}
+      }
+
+      scanner = new Html5Qrcode("reader");
+
+      const cameras = await Html5Qrcode.getCameras();
+
+      if (!cameras || cameras.length === 0) {
+        throw firstError;
+      }
+
+      await scanner.start(
+        cameras[0].id,
+        {
+          fps: 10,
+          qrbox: function(width, height) {
+            const size = Math.min(width, height) * 0.75;
+            return { width: size, height: size };
+          }
+        },
+        onScanSuccess,
+        function() {}
+      );
+
+    }
 
     scanning = true;
     starting = false;
 
     document.getElementById("startBtn").disabled = true;
     document.getElementById("startBtn").textContent = "Camera Started";
-
     document.getElementById("stopBtn").disabled = false;
 
     showStatus("Camera is ON. Scan employee QR code.");
@@ -169,6 +193,7 @@ async function startScanner() {
   } catch (error) {
 
     starting = false;
+    scanning = false;
     scanner = null;
 
     document.getElementById("startBtn").disabled = false;
@@ -182,8 +207,7 @@ async function startScanner() {
 
   }
 
-}
-
+} 
 
 
 // QR SCAN SUCCESS
